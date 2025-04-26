@@ -32,7 +32,8 @@
       "*://*.youtube.com/*"
     ],
     "permissions": [
-      "activeTab"
+      "activeTab",
+      "storage"
     ]
   }
 }

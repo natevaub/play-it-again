@@ -1,6 +1,14 @@
 import cssText from "data-text:~style.css"
 import type { PlasmoCSConfig, PlasmoGetOverlayAnchor } from "plasmo"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
+
+import {
+  debugFillLocalStorage,
+  loadLocalStorageAssociatedWithCurrentVideo
+} from "~lib/storage"
+import type { LocalStorageItem, PortionSettings } from "~types/types"
+
+// Manage URL
 
 // https://www.youtube.com/watch?v=1iLNVa95LxQ&t=375s
 
@@ -23,23 +31,46 @@ export const getStyle = () => {
   return style
 }
 
-export type PortionSettings = {
-  portionTitle: string
-  startTime: number
-  endTime: number
-  loops: number
-}
-
 const validatePortion = (portion: PortionSettings) => {
   return (
     portion.startTime && portion.endTime && portion.startTime < portion.endTime
   )
 }
 
+const DisplayStorageItems = ({ items }: { items: PortionSettings[] }) => {
+  return (
+    <div className="overflow-y-auto">
+      {items.map((item) => (
+        <div className="flex gap-2">
+          <div>{item.portionTitle}</div>
+          <div>{item.startTime}</div>
+          <div>{item.endTime}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const LooperUI = () => {
   const [currentLoop, setCurrentLoop] = useState(0)
   const [isLooping, setIsLooping] = useState(false)
+  const [items, setItems] = useState<PortionSettings[]>([])
   const isTransitioning = useRef(false)
+
+  useEffect(() => {
+    // Initial load
+    setItems(loadLocalStorageAssociatedWithCurrentVideo())
+
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      setItems(loadLocalStorageAssociatedWithCurrentVideo())
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
+  // Create a local storage object to store the portion settings
 
   const [portion, setPortion] = useState<PortionSettings>({
     portionTitle: "",
@@ -54,9 +85,8 @@ const LooperUI = () => {
 
     const delay = 1000 // 1 second delay between loops
     console.log("Starting loop")
-    
+
     video.currentTime = portion.startTime
-    setCurrentLoop(prev => prev + 1)
 
     const handleTimeUpdate = () => {
       if (isTransitioning.current) return
@@ -64,10 +94,9 @@ const LooperUI = () => {
       if (video.currentTime >= portion.endTime) {
         isTransitioning.current = true
         video.pause()
-        
+
         setTimeout(() => {
-          // Get the latest loop count
-          setCurrentLoop(prevLoop => {
+          setCurrentLoop((prevLoop) => {
             if (prevLoop < portion.loops) {
               video.currentTime = portion.startTime
               video.play()
@@ -77,6 +106,7 @@ const LooperUI = () => {
               return prevLoop
             }
           })
+
           isTransitioning.current = false
         }, delay)
       }
@@ -106,45 +136,58 @@ const LooperUI = () => {
   }
 
   return (
-    <div className="m-8 bg-red-500 w-[250px] h-[250px]">
-      <form onKeyDown={handleKeyDown} onSubmit={handleSubmit}>
-        <button type="submit">Start Looping</button>
-        <input
-          placeholder="Portion Title"
-          type="string"
-          value={portion.portionTitle}
-          onChange={(e) =>
-            setPortion({ ...portion, portionTitle: e.target.value })
-          }
-        />
-        <input
-          placeholder="Start Time"
-          type="number"
-          value={portion.startTime}
-          onChange={(e) =>
-            setPortion({ ...portion, startTime: Number(e.target.value) })
-          }
-        />
-        <input
-          placeholder="End Time"
-          type="number"
-          value={portion.endTime}
-          onChange={(e) =>
-            setPortion({ ...portion, endTime: Number(e.target.value) })
-          }
-        />
-        <input
-          placeholder="Loops"
-          type="number"
-          value={portion.loops}
-          onChange={(e) =>
-            setPortion({ ...portion, loops: Number(e.target.value) })
-          }
-        />
-      </form>
+    <div className="m-8 bg-red-500 w-[250px] h-[250px] flex flex-col">
+      <div>
+        <form
+          onKeyDown={handleKeyDown}
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-2">
+          <button type="submit">Start Looping</button>
+          <input
+            placeholder="Portion Title"
+            type="string"
+            value={portion.portionTitle}
+            onChange={(e) =>
+              setPortion({ ...portion, portionTitle: e.target.value })
+            }
+          />
+          <input
+            placeholder="Start Time"
+            type="number"
+            value={portion.startTime}
+            onChange={(e) =>
+              setPortion({ ...portion, startTime: Number(e.target.value) })
+            }
+          />
+          <input
+            placeholder="End Time"
+            type="number"
+            value={portion.endTime}
+            onChange={(e) =>
+              setPortion({ ...portion, endTime: Number(e.target.value) })
+            }
+          />
+          <input
+            placeholder="Loops"
+            type="number"
+            value={portion.loops}
+            onChange={(e) =>
+              setPortion({ ...portion, loops: Number(e.target.value) })
+            }
+          />
+        </form>
+      </div>
       <div>
         <p>Current Loop: {currentLoop}</p>
         <p>Status: {isLooping ? "Looping" : "Stopped"}</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <DisplayStorageItems items={items} />
+      </div>
+
+      <div>
+        <button onClick={debugFillLocalStorage}>FillStorage</button>
       </div>
     </div>
   )
