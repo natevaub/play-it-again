@@ -74,6 +74,8 @@ export const createLocalStorageItem = (portionSettings: PortionSettings) => {
     `play-it-again-${currentLocation.href.split("=")[1]}-${portionSettings.startTime}:${portionSettings.endTime}`,
     JSON.stringify(newItem)
   )
+
+  console.log('New item created: ', localStorage.getItem(`play-it-again-${currentLocation.href.split("=")[1]}-${portionSettings.startTime}:${portionSettings.endTime}`))
 }
 
 export const deleteStorage = () : void => {

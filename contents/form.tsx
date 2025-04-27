@@ -1,16 +1,31 @@
 import { useEffect, useState } from "react"
 
 import type { PortionSettings } from "~types/types"
+import { createLocalStorageItem } from "~lib/storage"
+import { validatePortion } from "~lib/form"
 
 // This is a commit farming message
 
-export const CreationForm = () => {
+interface CreationFormProps {
+  onSubmit?: () => void
+}
+
+export const CreationForm = ({ onSubmit }: CreationFormProps) => {
+  console.log("CreationForm component mounted")
+  
   const [portion, setPortion] = useState<PortionSettings>({
     portionTitle: "",
-    startTime: null,
-    endTime: null,
+    startTime: 0,
+    endTime: 0,
     loops: 0
   })
+
+  // Add useEffect to log changes
+  useEffect(() => {
+    console.log("Form state changed:", portion)
+  }, [portion])
+
+  const [error, setError] = useState<string>("")
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     e.stopPropagation()
@@ -18,8 +33,37 @@ export const CreationForm = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // setCurrentLoop(0)
-    // setIsLooping(true)
+    console.log("Form submitted with:", portion)
+    
+    if (!validatePortion(portion)) {
+      console.log("Validation failed")
+      setError("Invalid portion settings. Start time must be less than end time.")
+      return
+    }
+
+    try {
+      console.log("Attempting to create localStorage item")
+      createLocalStorageItem(portion)
+      setError("")
+      // Reset form
+      setPortion({
+        portionTitle: "",
+        startTime: 0,
+        endTime: 0,
+        loops: 0
+      })
+      console.log("Form reset and onSubmit callback called")
+      // Call the onSubmit callback if provided
+      onSubmit?.()
+    } catch (err) {
+      console.error("Error creating item:", err)
+      setError("Failed to save portion. Please try again.")
+    }
+  }
+
+  const handleChange = (field: keyof PortionSettings, value: string | number) => {
+    console.log(`Field ${field} changed to:`, value)
+    setPortion(prev => ({ ...prev, [field]: value }))
   }
 
   return (
@@ -27,41 +71,40 @@ export const CreationForm = () => {
       onKeyDown={handleKeyDown}
       onSubmit={handleSubmit}
       className="flex flex-col gap-2">
-      <button type="submit" className="">
-        Add Portion
-      </button>
+      {error && <div className="text-red-500 text-sm">{error}</div>}
       <input
         placeholder="Portion Title"
         type="string"
         value={portion.portionTitle}
-        onChange={(e) =>
-          setPortion({ ...portion, portionTitle: e.target.value })
-        }
+        onChange={(e) => handleChange('portionTitle', e.target.value)}
+        className="p-2 border rounded"
       />
       <input
-        placeholder="Start Time"
+        placeholder="Start Time (seconds)"
         type="number"
         value={portion.startTime}
-        onChange={(e) =>
-          setPortion({ ...portion, startTime: Number(e.target.value) })
-        }
+        onChange={(e) => handleChange('startTime', Number(e.target.value))}
+        className="p-2 border rounded"
       />
       <input
-        placeholder="End Time"
+        placeholder="End Time (seconds)"
         type="number"
         value={portion.endTime}
-        onChange={(e) =>
-          setPortion({ ...portion, endTime: Number(e.target.value) })
-        }
+        onChange={(e) => handleChange('endTime', Number(e.target.value))}
+        className="p-2 border rounded"
       />
       <input
-        placeholder="Loops"
+        placeholder="Number of Loops"
         type="number"
         value={portion.loops}
-        onChange={(e) =>
-          setPortion({ ...portion, loops: Number(e.target.value) })
-        }
+        onChange={(e) => handleChange('loops', Number(e.target.value))}
+        className="p-2 border rounded"
       />
+      <button 
+        type="submit" 
+        className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+        Add Portion
+      </button>
     </form>
   )
 }

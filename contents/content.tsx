@@ -1,6 +1,7 @@
 import cssText from "data-text:~style.css"
 import type { PlasmoCSConfig, PlasmoGetOverlayAnchor } from "plasmo"
 import { useEffect, useRef, useState } from "react"
+import { validatePortion } from "~lib/form"
 
 import {
   debugFillLocalStorage,
@@ -8,6 +9,7 @@ import {
   deleteStorage,
 } from "~lib/storage"
 import type { LocalStorageItem, PortionSettings } from "~types/types"
+import { CreationForm } from "./form"
 
 // Manage URL
 
@@ -32,11 +34,6 @@ export const getStyle = () => {
   return style
 }
 
-const validatePortion = (portion: PortionSettings) => {
-  return (
-    portion.startTime && portion.endTime && portion.startTime < portion.endTime
-  )
-}
 
 const DisplayStorageItems = ({ items }: { items: PortionSettings[] }) => {
   return (
@@ -53,21 +50,28 @@ const DisplayStorageItems = ({ items }: { items: PortionSettings[] }) => {
 }
 
 const LooperUI = () => {
+  console.log("LooperUI component mounted")
+  
   const [currentLoop, setCurrentLoop] = useState(0)
   const [isLooping, setIsLooping] = useState(false)
   const [items, setItems] = useState<PortionSettings[]>([])
   const isTransitioning = useRef(false)
 
   const refreshItems = () => {
-    setItems(loadLocalStorageAssociatedWithCurrentVideo())
+    console.log("Refreshing items")
+    const loadedItems = loadLocalStorageAssociatedWithCurrentVideo()
+    console.log("Loaded items:", loadedItems)
+    setItems(loadedItems)
   }
 
   useEffect(() => {
+    console.log("LooperUI useEffect running")
     // Initial load
     refreshItems()
 
     // Listen for storage changes
     const handleStorageChange = () => {
+      console.log("Storage changed, refreshing items")
       refreshItems()
     }
 
@@ -143,44 +147,7 @@ const LooperUI = () => {
   return (
     <div className="m-8 bg-red-500 w-[250px] h-[250px] flex flex-col">
       <div>
-        <form
-          onKeyDown={handleKeyDown}
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-2">
-          <button type="submit" className="">Add Portion</button>
-          <input
-            placeholder="Portion Title"
-            type="string"
-            value={portion.portionTitle}
-            onChange={(e) =>
-              setPortion({ ...portion, portionTitle: e.target.value })
-            }
-          />
-          <input
-            placeholder="Start Time"
-            type="number"
-            value={portion.startTime}
-            onChange={(e) =>
-              setPortion({ ...portion, startTime: Number(e.target.value) })
-            }
-          />
-          <input
-            placeholder="End Time"
-            type="number"
-            value={portion.endTime}
-            onChange={(e) =>
-              setPortion({ ...portion, endTime: Number(e.target.value) })
-            }
-          />
-          <input
-            placeholder="Loops"
-            type="number"
-            value={portion.loops}
-            onChange={(e) =>
-              setPortion({ ...portion, loops: Number(e.target.value) })
-            }
-          />
-        </form>
+        <CreationForm onSubmit={refreshItems} />
       </div>
       <div>
         <p>Current Loop: {currentLoop}</p>
@@ -193,10 +160,12 @@ const LooperUI = () => {
 
       <div className="flex gap-2">
         <button onClick={() => {
+          console.log("Debug fill storage clicked")
           debugFillLocalStorage()
           refreshItems()
         }}>FillStorage</button>
         <button onClick={() => {
+          console.log("Delete storage clicked")
           deleteStorage()
           refreshItems()
         }}>Delete Storage</button>
