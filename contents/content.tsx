@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react"
 
 import {
   debugFillLocalStorage,
-  loadLocalStorageAssociatedWithCurrentVideo
+  loadLocalStorageAssociatedWithCurrentVideo,
+  deleteStorage,
 } from "~lib/storage"
 import type { LocalStorageItem, PortionSettings } from "~types/types"
 
@@ -57,13 +58,17 @@ const LooperUI = () => {
   const [items, setItems] = useState<PortionSettings[]>([])
   const isTransitioning = useRef(false)
 
+  const refreshItems = () => {
+    setItems(loadLocalStorageAssociatedWithCurrentVideo())
+  }
+
   useEffect(() => {
     // Initial load
-    setItems(loadLocalStorageAssociatedWithCurrentVideo())
+    refreshItems()
 
     // Listen for storage changes
     const handleStorageChange = () => {
-      setItems(loadLocalStorageAssociatedWithCurrentVideo())
+      refreshItems()
     }
 
     window.addEventListener('storage', handleStorageChange)
@@ -127,8 +132,8 @@ const LooperUI = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setCurrentLoop(0)
-    setIsLooping(true)
+    // setCurrentLoop(0)
+    // setIsLooping(true)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -142,7 +147,7 @@ const LooperUI = () => {
           onKeyDown={handleKeyDown}
           onSubmit={handleSubmit}
           className="flex flex-col gap-2">
-          <button type="submit">Start Looping</button>
+          <button type="submit" className="">Add Portion</button>
           <input
             placeholder="Portion Title"
             type="string"
@@ -186,8 +191,15 @@ const LooperUI = () => {
         <DisplayStorageItems items={items} />
       </div>
 
-      <div>
-        <button onClick={debugFillLocalStorage}>FillStorage</button>
+      <div className="flex gap-2">
+        <button onClick={() => {
+          debugFillLocalStorage()
+          refreshItems()
+        }}>FillStorage</button>
+        <button onClick={() => {
+          deleteStorage()
+          refreshItems()
+        }}>Delete Storage</button>
       </div>
     </div>
   )

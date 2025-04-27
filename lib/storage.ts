@@ -77,16 +77,19 @@ export const createLocalStorageItem = (portionSettings: PortionSettings) => {
 }
 
 export const deleteStorage = () : void => {
-
   const currentLocationCode = window.location.href.split("=")[1]
+  const keysToDelete: string[] = []
 
-  // Iterate through localStorage keys
+  // First collect all keys to delete
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i)
-
-    // Check if key matches our pattern and video ID
     if (key?.startsWith(`play-it-again-${currentLocationCode}`)) {
-      localStorage.removeItem(`play-it-again-${currentLocationCode}`)
+      keysToDelete.push(key)
     }
   }
+
+  // Then delete them
+  keysToDelete.forEach(key => {
+    localStorage.removeItem(key)
+  })
 }
