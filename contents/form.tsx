@@ -11,7 +11,6 @@ interface CreationFormProps {
 }
 
 export const CreationForm = ({ onSubmit }: CreationFormProps) => {
-  console.log("CreationForm component mounted")
   
   const [portion, setPortion] = useState<PortionSettings>({
     portionTitle: "",
